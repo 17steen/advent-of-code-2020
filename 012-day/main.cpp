@@ -117,7 +117,6 @@ auto solve(const std::string &path)
 			current_rotation_p1 += num;
 
 			wp.rotate_origin(-num);
-
 			break;
 		case 'L':
 			current_rotation_p1 -= num;
