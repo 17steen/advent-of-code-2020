@@ -5,6 +5,8 @@
 #
 */*.o
 !makefile
+!LICENCE
 .vscode/
 
 007-msvc
+
