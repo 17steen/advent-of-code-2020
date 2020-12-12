@@ -1,0 +1,10 @@
+# ignore text files and executables
+*
+!/**/
+!*.*
+#
+*/*.o
+!makefile
+.vscode/
+
+007-msvc
