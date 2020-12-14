@@ -131,7 +131,7 @@ auto solve(const std::string &path)
 				memaddr &= ~((1UL) << x);
 			}
 
-			std::size_t possibilities = std::pow(2, x_pos.size());
+			std::size_t possibilities = 2 << x_pos.size();
 			for (auto i = 0UL; i < possibilities; ++i)
 			{
 				std::size_t copy = memaddr;
