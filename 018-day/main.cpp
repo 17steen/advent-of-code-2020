@@ -201,14 +201,17 @@ auto seek_right(const std::string::iterator end, const std::string::iterator cur
 	return std::string(current + 1, end) + ')';
 }
 
-auto add_parenthesese(std::string str)
+/*
+parser does not follow the operand order, this fixes it
+*/
+auto parenthesize(std::string str, char op)
 	-> std::string
 {
 	size_t skip = 0;
 
 	for (;;)
 	{
-		auto p_idx = std::find(str.begin() + skip, str.end(), '+');
+		auto p_idx = std::find(str.begin() + skip, str.end(), op);
 
 		if (p_idx == str.end())
 		{
@@ -235,7 +238,7 @@ auto solve(const std::string &path)
 	while (std::getline(file, line))
 	{
 		part_1 += parse(line).second;
-		auto res = add_parenthesese(line);
+		auto res = parenthesize(line, '+');
 		part_2 += parse(res).second;
 	}
 
@@ -245,12 +248,6 @@ auto solve(const std::string &path)
 auto main(int, char **)
 	-> int
 {
-	/*
-	std::string str{"(2 * (2)) + 2"};
-
-	std::cout << seek_left(str.begin(), str.begin() + str.find('+')) << '+';
-	std::cout << seek_right(str.end(), str.begin() + str.find('+'));
-	*/
 
 	{
 		time_start(solving);
