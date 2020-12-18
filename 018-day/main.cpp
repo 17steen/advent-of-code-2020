@@ -2,10 +2,11 @@
 #include <array>
 #include <boost/tokenizer.hpp>
 #include <cassert>
-#include <chrono>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <compare>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <fstream>
@@ -18,12 +19,12 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <unistd.h>
 #include <string_view>
 #include <system_error>
+#include <thread>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
-#include <thread>
 
 #include <cstdio>
 #include <unordered_set>
@@ -51,47 +52,6 @@ constexpr auto mul(intmax_t a, intmax_t b) noexcept
 	-> intmax_t
 {
 	return a * b;
-}
-
-auto parse_p2(const std::string &expr)
-	-> intmax_t
-{
-	int str_to_sh[2];
-	int res_from_sh[2];
-	int ec = pipe(str_to_sh);
-	assert(ec == 0);
-	ec = pipe(res_from_sh);
-	assert(ec == 0);
-
-	int pid = fork();
-	assert(pid != -1);
-	if (pid == 0) /* child */
-	{
-		dup2(str_to_sh[0], STDIN_FILENO);	 // reads from str instead of stdin
-		dup2(res_from_sh[1], STDOUT_FILENO); //writes to res_from_sh instead of stdout
-		execl("./line_echo", "./line_echo", nullptr);
-
-		std::cerr << "did not execute" << std::endl;
-
-		exit(1);
-	}
-	else
-	{
-		close(str_to_sh[0]);
-		close(res_from_sh[1]);
-		auto amount_written = write(str_to_sh[1], expr.c_str(), expr.size());
-		std::cerr << amount_written << std::endl;
-
-		char buffer[255] = {};
-
-		auto amount_read = read(res_from_sh[0], static_cast<void *>(buffer), 10);
-		std::cerr << "read a few bytes : " << amount_read << std::endl;
-		std::cerr << buffer << std::endl;
-
-		close(str_to_sh[1]);
-		close(res_from_sh[0]);
-	}
-	return 0;
 }
 
 auto parse(std::string_view expression)
@@ -123,9 +83,9 @@ auto parse(std::string_view expression)
 			// from_chars returns where it stopped, very handy
 			it = std::string_view::iterator(p);
 
-			printf("%ld ? %ld = ", val, tmp);
+			//printf("%ld ? %ld = ", val, tmp);
 			val = operand(val, tmp);
-			printf("% ld\n", val);
+			//printf("%ld\n", val);
 
 			continue;
 		}
@@ -154,6 +114,115 @@ auto parse(std::string_view expression)
 	return {it, val};
 }
 
+auto seek_left(const std::string::iterator start, const std::string::iterator current)
+	-> std::string
+{
+	int bracket_count = 0;
+
+	for (auto it = current - 1; it >= start;)
+	{
+		char ch = *it;
+		if (ch == ')')
+		{
+			++bracket_count;
+		}
+		else if (ch == '(')
+		{
+			--bracket_count;
+			if (bracket_count == 0)
+			{
+				// do the thing
+				return std::string(start, it) + '(' + std::string(it, current);
+			}
+		}
+		else if (ch >= '0' and ch <= '9')
+		{
+
+			do
+			{
+				--it;
+				ch = *it;
+
+			} while (ch >= '0' and ch <= '9');
+
+			if (bracket_count == 0 and it >= start)
+			{
+				//std::cerr << "get here uwu owo awa abababab" << std::endl;
+				return std::string(start, it) + '(' + std::string(it, current);
+			}
+
+			continue;
+		}
+		--it;
+	}
+
+	return '(' + std::string(start, current);
+}
+
+auto seek_right(const std::string::iterator end, const std::string::iterator current)
+	-> std::string
+{
+	int bracket_count = 0;
+
+	for (auto it = current + 1; it != end;)
+	{
+		char ch = *it;
+		if (ch == '(')
+		{
+			++bracket_count;
+		}
+		else if (ch == ')')
+		{
+			--bracket_count;
+			if (bracket_count == 0)
+			{
+				return std::string(current + 1, it) + ')' + std::string(it, end);
+			}
+		}
+		else if (ch >= '0' and ch <= '9')
+		{
+			do
+			{
+				++it;
+				ch = *it;
+
+			} while (ch >= '0' and ch <= '9');
+
+			if (bracket_count == 0 and it != end)
+			{
+				return std::string(current + 1, it) + ')' + std::string(it, end);
+			}
+
+			continue;
+		}
+		++it;
+	}
+
+	return std::string(current + 1, end) + ')';
+}
+
+auto add_parenthesese(std::string str)
+	-> std::string
+{
+	size_t skip = 0;
+
+	for (;;)
+	{
+		auto p_idx = std::find(str.begin() + skip, str.end(), '+');
+
+		if (p_idx == str.end())
+		{
+			return str;
+		}
+
+		auto left_part = seek_left(str.begin(), p_idx);
+
+		skip = left_part.size() + 2;
+
+		str = left_part + '+' + seek_right(str.end(), p_idx);
+	}
+}
+
 auto solve(const std::string &path)
 	-> std::pair<std::size_t, std::size_t>
 {
@@ -165,8 +234,9 @@ auto solve(const std::string &path)
 
 	while (std::getline(file, line))
 	{
-		std::cout << "uinarset" << std::endl;
 		part_1 += parse(line).second;
+		auto res = add_parenthesese(line);
+		part_2 += parse(res).second;
 	}
 
 	return {part_1, part_2};
@@ -175,10 +245,13 @@ auto solve(const std::string &path)
 auto main(int, char **)
 	-> int
 {
-
-	parse_p2("hahhahhaah");
-
 	/*
+	std::string str{"(2 * (2)) + 2"};
+
+	std::cout << seek_left(str.begin(), str.begin() + str.find('+')) << '+';
+	std::cout << seek_right(str.end(), str.begin() + str.find('+'));
+	*/
+
 	{
 		time_start(solving);
 		auto [part_1, part_2] = solve("./input");
@@ -188,6 +261,6 @@ auto main(int, char **)
 
 		time_end(solving, "execution time : ");
 	}
-*/
+
 	return 0;
 }
