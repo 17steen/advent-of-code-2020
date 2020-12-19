@@ -119,9 +119,7 @@ auto get_rules(std::ifstream &file)
 
 			else if (ch == '"')
 			{
-				//subject to change
 				rule.match = *++it;
-				//std::cout << " ( " << rule.match << " ) " << std::endl;
 				++it;
 			}
 			// doesn't reach
@@ -187,7 +185,7 @@ auto validate_string(const std::unordered_map<uint32_t, struct rule> &rules, con
 		return outcomes;
 	}
 
-	std::cerr << "should not have reached here …………… terminating …………" << std::endl;
+	std::cerr << "ERR  " << __LINE__ << " : should not reach." << std::endl;
 	std::terminate();
 
 	return {};
@@ -252,9 +250,9 @@ auto solve(const std::string &path)
 		.match = 0,
 	};
 
-	/*/ print rules
+#ifdef DEBUG
 	print_rules(rules_p2);
-	//*/
+#endif
 
 	while (std::getline(file, line))
 	{
@@ -274,10 +272,11 @@ auto solve(const std::string &path)
 			{
 				part_2 += 1;
 			}
-			//std::cout << (b ? "✔ " : "🤬 ") << " : " << line << std::endl;
+#ifdef DEBUG
+			std::cout << (b ? "✔ " : "🤬 ") << " : " << line << std::endl;
+#endif
 		}
 	}
-	std::cout << std::endl;
 	//*/
 
 	return {part_1, part_2};
