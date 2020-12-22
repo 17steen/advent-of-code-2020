@@ -51,12 +51,25 @@ using namespace std::literals::chrono_literals;
 #define time_start(x) auto x = std::chrono::high_resolution_clock::now();
 #define time_end(x, str) std::cout << (str) << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - (x)).count() << "[µs].\n";
 
+using deck_type = std::deque<uint32_t>;
+
+auto hash_deck(const deck_type &dq)
+	-> uint64_t
+{
+	uint64_t hash = 0;
+	for (uint64_t v : dq)
+	{
+		hash |= (uint64_t)1 << v;
+	}
+	return hash;
+}
+
 auto get_deck(std::ifstream &file)
-	-> std::deque<uint32_t>
+	-> deck_type
 {
 	static auto buffer = std::string{};
 
-	auto deck = std::deque<uint32_t>{};
+	auto deck = deck_type{};
 
 	std::getline(file, buffer);
 	while (std::getline(file, buffer))
@@ -95,7 +108,7 @@ auto get_score(rg::bidirectional_range auto &bidi)
 	return acc;
 }
 
-auto get_part1(std::deque<uint32_t> p1_deck, std::deque<uint32_t> p2_deck)
+auto get_part1(deck_type p1_deck, deck_type p2_deck)
 {
 	auto part_1 = std::size_t{};
 
@@ -145,10 +158,10 @@ enum winner
 	P2
 };
 
-auto recurse(std::deque<uint32_t> &p1_deck, std::deque<uint32_t> &p2_deck)
+auto recurse(deck_type &p1_deck, deck_type &p2_deck)
 	-> winner
 {
-	auto history = std::vector<std::pair<std::deque<uint32_t>, std::deque<uint32_t>>>{};
+	auto history = std::vector<std::pair<uint64_t, uint64_t>>{};
 	for (auto turn = 0UL;; ++turn)
 	{
 		if (p2_deck.empty())
@@ -159,16 +172,18 @@ auto recurse(std::deque<uint32_t> &p1_deck, std::deque<uint32_t> &p2_deck)
 		{
 			return P2;
 		}
+		auto h1 = hash_deck(p1_deck);
+		auto h2 = hash_deck(p2_deck);
 		//Before either player deals a card, if there was a previous round in this game that had exactly the same cards in the same order in the same players' decks, the game instantly ends in a win for player 1. Previous rounds from other games are not considered. (This prevents infinite games of Recursive Combat, which everyone agrees is a bad idea.)
 		for (auto &[p1, p2] : history)
 		{
-			if (p1_deck == p1 and p2_deck == p2)
+			if (h1 == p1 and h2 == p2)
 			{
 				return P1;
 			}
 		}
 		//save it to history
-		history.push_back({p1_deck, p2_deck});
+		history.push_back({h1, h2});
 
 		//Otherwise, this round's cards must be in a new configuration; the players begin the round by each drawing the top card of their deck as normal.
 
@@ -185,9 +200,9 @@ auto recurse(std::deque<uint32_t> &p1_deck, std::deque<uint32_t> &p2_deck)
 		if (card_1 <= p1_deck.size() and card_2 <= p2_deck.size())
 		{
 			//recurse
-			auto cp1 = std::deque<uint32_t>(p1_deck.begin(), p1_deck.begin() + card_1);
+			auto cp1 = deck_type(p1_deck.begin(), p1_deck.begin() + card_1);
 			//print_iterable(cp1);
-			auto cp2 = std::deque<uint32_t>(p2_deck.begin(), p2_deck.begin() + card_2);
+			auto cp2 = deck_type(p2_deck.begin(), p2_deck.begin() + card_2);
 			w = recurse(cp1, cp2);
 		}
 
@@ -219,7 +234,7 @@ auto recurse(std::deque<uint32_t> &p1_deck, std::deque<uint32_t> &p2_deck)
 	}
 }
 
-auto get_part2(std::deque<uint32_t> p1_deck, std::deque<uint32_t> p2_deck)
+auto get_part2(deck_type p1_deck, deck_type p2_deck)
 	-> std::size_t
 {
 	winner w = recurse(p1_deck, p2_deck);
